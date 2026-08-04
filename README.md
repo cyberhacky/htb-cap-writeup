@@ -148,3 +148,13 @@ nmap -Pn -sC -sV -oA cap_initial 10.129.79.148
 | `-oA`  | Save output in normal, XML, and grepable formats |
 
 ![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab.png?raw=true)
+
+## Analysis
+
+Three externally accessible services were identified during reconnaissance.
+
+While FTP and SSH represent common administrative services, the HTTP service exposed a web application that presented the broadest attack surface due to its interactive functionality and multiple accessible endpoints.
+
+Based on the initial reconnaissance results, the web application was selected as the primary focus for further enumeration because web applications commonly expose authentication workflows, administrative functionality, and object references that may be susceptible to access control weaknesses.
+
+FTP and SSH were retained as secondary attack vectors pending the discovery of valid credentials or additional supporting evidence.
