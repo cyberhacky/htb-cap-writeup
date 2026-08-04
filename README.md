@@ -157,16 +157,6 @@ nmap -Pn -sC -sV -oA cap_initial 10.129.79.148
 |   80 | HTTP    | Gunicorn      | Web Application | Critical |
 
 
-External Attacker
-        │
-        ▼
-   10.129.79.148
-        │
- ┌──────┼───────────┐
- │      │           │
-FTP    SSH       HTTP
-21      22         80
-
 
 
 ## Analysis
