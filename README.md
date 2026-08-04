@@ -213,4 +213,126 @@ Fingerprinting helps determine the underlying web server, client-side frameworks
 ```bash
 whatweb http://10.129.79.148
 ```
+
 ![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab1.png?raw=true)
+
+The WhatWeb scan identified several technologies and frameworks associated with the application, including:
+
+- Gunicorn HTTP Server
+- Bootstrap
+- jQuery 2.2.4
+- Modernizr 2.8.3
+- HTML5
+
+The application returned an HTTP 200 response and presented a page titled **Security Dashboard**. :contentReference[oaicite:2]{index=2}
+
+The presence of Gunicorn indicates that the application is likely implemented using a Python-based web framework.
+
+Client-side libraries including Bootstrap and jQuery suggest a dynamic administrative interface, while the Security Dashboard title indicates that the application provides operational monitoring functionality rather than serving static content.
+
+These findings justified performing deeper application enumeration.
+
+```bash
+curl -I http://10.129.79.148
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab2.png?raw=true)
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab3.png?raw=true)
+
+While I was reviewing the HTML source revealed multiple administrative functions exposed through the application's navigation menu.
+
+The available functionality included:
+
+- Dashboard
+- Security Snapshot
+- IP Configuration
+- Network Status
+
+Among these, the Security Snapshot functionality appeared particularly interesting because it suggested that the application generated packet captures for later review.
+
+Features responsible for collecting, storing, or displaying sensitive network data frequently warrant closer inspection during web application assessments because they may expose information through insecure access controls or object references.
+
+> **My Observation**
+>
+> At this stage of the assessment, the Security Snapshot feature appeared to represent the largest potential attack surface because it involved creating and retrieving network capture files. Functionality that references stored objects often becomes a candidate for authorization testing during subsequent vulnerability analysis.
+
+curl http://10.129.79.148/ip
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab4.png?raw=true)
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab5.png?raw=true)
+
+The IP Configuration page displayed the network configuration of the underlying Linux host directly within the web application.
+
+Information disclosed included:
+
+- Interface names
+- IPv4 addressing
+- IPv6 addresses
+- MAC address
+- Packet statistics
+- Interface status
+
+Although this functionality does not immediately provide code execution or authentication bypass, it exposes detailed host networking information that would normally be unavailable to unauthenticated users.
+
+This information can assist attackers during later stages of an assessment by revealing:
+
+- Internal addressing
+- Network interfaces
+- Host configuration
+- Active network statistics
+
+The exposure represents unnecessary information disclosure that could assist reconnaissance activities.
+
+curl http://10.129.79.148/netstat
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab6.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab7.png?raw=true)
+
+The Network Status page returned the output of the Linux netstat utility directly through the web interface.
+
+The page disclosed:
+
+- Listening services
+- Active network connections
+- Established sessions
+- Local ports
+- UNIX domain sockets
+
+Publishing live netstat output significantly increases the information available to an attacker.
+
+While these services had already been identified through external reconnaissance, the endpoint confirmed their operational state from the host itself and exposed additional runtime information unavailable through ordinary port scanning.
+
+Such functionality should normally be restricted to authenticated administrators because it provides valuable intelligence regarding internal system activity.
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab8.png?raw=true)
+
+# My Observation
+Requesting the Security Snapshot endpoint resulted in an HTTP redirect rather than immediately displaying content.
+
+The application redirected the request to:
+
+/data/1
+
+# Analysis
+
+The redirect exposed an object identifier within the application's URL structure.
+
+Applications that reference stored resources using sequential numeric identifiers frequently warrant authorization testing to determine whether access controls are correctly enforced.
+
+At this stage no conclusions were made regarding vulnerability; however, the predictable resource identifier was identified as a candidate for further assessment during the Vulnerability Analysis phase.
+
+## HTTP Enumeration Summary
+
+Manual inspection of the exposed application identified multiple administrative endpoints that disclosed operational information.
+
+The application exposed:
+
+- Dashboard
+- Security Snapshot
+- IP Configuration
+- Network Status
+
+While the IP Configuration and Network Status pages revealed useful system information, the Security Snapshot feature appeared to reference stored resources using a predictable numeric identifier.
+
+This observation established the basis for focused authorization testing during the Vulnerability Analysis phase.
+
