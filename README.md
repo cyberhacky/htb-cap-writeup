@@ -83,3 +83,67 @@ Information collected during each phase informed the activities performed in the
 > **Disclaimer**
 >
 > This report documents a penetration test performed against the Hack The Box "Cap" machine within an authorized laboratory environment. All activities were conducted for educational purposes on infrastructure designed for security training. No testing was performed against unauthorized systems.
+
+## Table of Contents
+
+1. Executive Summary
+2. Scope
+3. Assessment Objectives
+4. Rules of Engagement
+5. Methodology
+6. Attack Surface Overview
+7. Reconnaissance
+8. Enumeration
+9. Vulnerability Analysis
+10. Exploitation
+11. Privilege Escalation
+12. Security Findings
+13. Risk Assessment
+14. MITRE ATT&CK Mapping
+15. Remediation Recommendations
+16. Lessons Learned
+17. References
+
+     # Attack Surface Overview
+
+## Objective
+
+The objective of this phase was to identify the externally exposed attack surface of the target system and determine which network services and applications were available for further assessment.
+
+Understanding the attack surface provides the foundation for all subsequent enumeration and vulnerability analysis activities by identifying potential entry points and prioritizing areas of interest.
+
+## Methodology
+
+The assessment began with active network reconnaissance using Nmap to identify open TCP ports, detect running services, and determine application versions where possible.
+
+Service detection was performed to establish the technologies exposed by the target and to guide subsequent enumeration efforts.
+
+Each discovered service was analyzed to determine its potential role within the attack surface before moving to deeper application-specific testing.
+
+## Target Information
+
+| Property | Value |
+|----------|-------|
+| Target Platform | Hack The Box |
+| Machine | Cap |
+| Target IP | 10.129.79.148 |
+| Operating System | Linux |
+
+## Initial Network Reconnaissance
+
+The first stage of the assessment focused on identifying reachable TCP services.
+
+Nmap was selected because it provides reliable host discovery, service detection, version identification, and scripting capabilities that support structured penetration testing workflows.
+
+The following command was executed:
+```bash
+nmap -Pn -sC -sV -oA cap_initial 10.129.79.148
+```
+
+| Option | Purpose                                          |
+| ------ | ------------------------------------------------ |
+| `-Pn`  | Skip host discovery and treat the host as online |
+| `-sC`  | Run the default NSE script set                   |
+| `-sV`  | Detect service versions                          |
+| `-oA`  | Save output in normal, XML, and grepable formats |
+
