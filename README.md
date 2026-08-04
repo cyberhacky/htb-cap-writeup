@@ -147,4 +147,4 @@ nmap -Pn -sC -sV -oA cap_initial 10.129.79.148
 | `-sV`  | Detect service versions                          |
 | `-oA`  | Save output in normal, XML, and grepable formats |
 
-[Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab.png?raw=true)
