@@ -150,6 +150,22 @@ nmap -Pn -sC -sV -oA cap_initial 10.129.79.148
 **Figure 1.** Initial Nmap service discovery scan.
 ![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab.png?raw=true)
 
+| Port | Service | Version       | Purpose         | Priority |
+| ---: | ------- | ------------- | --------------- | -------- |
+|   21 | FTP     | vsftpd 3.0.3  | File Transfer   | Medium   |
+|   22 | SSH     | OpenSSH 8.2p1 | Remote Access   | High     |
+|   80 | HTTP    | Gunicorn      | Web Application | Critical |
+
+External Attacker
+        │
+        ▼
+   10.129.79.148
+        │
+ ┌──────┼───────────┐
+ │      │           │
+FTP    SSH       HTTP
+21      22         80
+
 ## Analysis
 
 Three externally accessible services were identified during reconnaissance.
@@ -159,3 +175,42 @@ While FTP and SSH represent common administrative services, the HTTP service exp
 Based on the initial reconnaissance results, the web application was selected as the primary focus for further enumeration because web applications commonly expose authentication workflows, administrative functionality, and object references that may be susceptible to access control weaknesses.
 
 FTP and SSH were retained as secondary attack vectors pending the discovery of valid credentials or additional supporting evidence.
+
+### Key Findings
+
+- Three externally accessible TCP services were identified.
+- The HTTP service presented the largest attack surface.
+- No anonymous FTP access was permitted.
+- SSH required authentication.
+- The web application was selected as the primary enumeration target.
+
+  > **My Observation**
+>
+> Although FTP and SSH were exposed, both required authentication before any meaningful interaction was possible. The HTTP service, by contrast, exposed multiple application endpoints and represented the most promising avenue for further investigation.
+
+## Reconnaissance Summary
+
+Enumeration of the exposed services revealed that:
+
+- FTP required valid credentials.
+- SSH required authentication and exposed no immediately actionable weaknesses.
+- The HTTP service exposed a feature-rich administrative dashboard with multiple accessible endpoints that warranted deeper investigation.
+
+Based on these findings, subsequent assessment efforts focused on the web application due to its significantly larger attack surface and exposed functionality.
+
+# HTTP Enumeration
+
+## Objective
+
+The objective of this phase was to enumerate the web application to identify exposed functionality, technologies, administrative interfaces, and potential attack vectors that could lead to unauthorized access.
+
+## Initial Web Fingerprinting
+
+Before interacting with the application, passive fingerprinting techniques were used to identify the technologies powering the web server and to gather information that could guide subsequent enumeration.
+
+Fingerprinting helps determine the underlying web server, client-side frameworks, and other technologies that may influence both the application's functionality and its potential attack surface.
+
+```bash
+whatweb http://10.129.79.148
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab1.png?raw=true)
