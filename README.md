@@ -156,6 +156,7 @@ nmap -Pn -sC -sV -oA cap_initial 10.129.79.148
 |   22 | SSH     | OpenSSH 8.2p1 | Remote Access   | High     |
 |   80 | HTTP    | Gunicorn      | Web Application | Critical |
 
+
 External Attacker
         │
         ▼
@@ -165,6 +166,8 @@ External Attacker
  │      │           │
 FTP    SSH       HTTP
 21      22         80
+
+
 
 ## Analysis
 
