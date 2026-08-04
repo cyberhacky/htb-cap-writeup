@@ -146,4 +146,3 @@ nmap -Pn -sC -sV -oA cap_initial 10.129.79.148
 | `-sC`  | Run the default NSE script set                   |
 | `-sV`  | Detect service versions                          |
 | `-oA`  | Save output in normal, XML, and grepable formats |
-
